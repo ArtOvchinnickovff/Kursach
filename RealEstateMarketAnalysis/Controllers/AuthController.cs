@@ -30,17 +30,17 @@ namespace RealEstateMarketAnalysis.Controllers
             try
             {
                 if (!IsValidEmail(userDto.Email))
-                    return BadRequest("Некорректный email.");
+                    return BadRequest("Invalid email or password");
 
                 if (string.IsNullOrWhiteSpace(userDto.Name) || userDto.Name.Length <= 3)
-                    return BadRequest("Имя должно содержать более 3 символов.");
+                    return BadRequest("Invalid email or password");
 
                 if (string.IsNullOrWhiteSpace(userDto.Password) || userDto.Password.Length < 6)
-                    return BadRequest("Пароль должен содержать минимум 6 символов.");
+                    return BadRequest("Invalid email or password");
 
                 // Проверяем, есть ли уже такой Email в базе
                 if (await dbContext.Users.AnyAsync(u => u.Email == userDto.Email))
-                    return BadRequest("Пользователь с таким email уже зарегистрирован.");
+                    return BadRequest("Invalid email or password.");
 
                 // Хешируем пароль
               
