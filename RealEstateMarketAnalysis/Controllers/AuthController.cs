@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using RealEstateMarketAnalysis.Data;
 using RealEstateMarketAnalysis.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 
 namespace RealEstateMarketAnalysis.Controllers
 {
@@ -21,30 +24,70 @@ namespace RealEstateMarketAnalysis.Controllers
 
         }
 
-
         [HttpPost("register")]
-        public ActionResult<UserModel> Register([FromBody] UserDto userDto)
+        public async Task<ActionResult<UserModel>> Register([FromBody] UserDto userDto, [FromServices] DataContext dbContext)
         {
-            user.Email = userDto.Email;
-            user.Password = userDto.Password;
-            return Ok(user);
+            try
+            {
+                if (!IsValidEmail(userDto.Email))
+                    return BadRequest("Некорректный email.");
+
+                if (string.IsNullOrWhiteSpace(userDto.Name) || userDto.Name.Length <= 3)
+                    return BadRequest("Имя должно содержать более 3 символов.");
+
+                if (string.IsNullOrWhiteSpace(userDto.Password) || userDto.Password.Length < 6)
+                    return BadRequest("Пароль должен содержать минимум 6 символов.");
+
+                // Проверяем, есть ли уже такой Email в базе
+                if (await dbContext.Users.AnyAsync(u => u.Email == userDto.Email))
+                    return BadRequest("Пользователь с таким email уже зарегистрирован.");
+
+                // Хешируем пароль
+              
+
+                var user = new UserModel
+                {
+                    Email = userDto.Email,
+                    Name = userDto.Name,
+                    Password = userDto.Password, 
+                };
+
+                dbContext.Users.Add(user);
+                await dbContext.SaveChangesAsync();
+
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                // Логируем ошибку
+                Console.WriteLine($"Ошибка: {ex.Message}");
+                return StatusCode(500, $"Ошибка сервера: {ex.Message}");
+            }
         }
+
+
         [HttpPost("login")]
-        public ActionResult<UserModel> Login([FromBody] UserDto userDto)
+        public async Task<ActionResult<string>> Login([FromBody] UserDto userDto, [FromServices] DataContext dbContext)
         {
-            if (user.Email != userDto.Email || user.Password != userDto.Password)
+            // Получаем пользователя из базы данных по email
+            var user = await dbContext.Users
+                                       .FirstOrDefaultAsync(u => u.Email == userDto.Email);
+
+            if (user == null)
             {
                 return BadRequest(new { Message = "Invalid email or password" });
             }
+
+            // Проверка пароля
+            if (user.Password != userDto.Password)
             {
-
-                string token = GenerateToken(user);
-
-                return Ok(token);
-
-
-
+                return BadRequest(new { Message = "Invalid email or password" });
             }
+
+            // Генерация JWT токена
+            string token = GenerateToken(user);
+
+            return Ok(new { Token = token });
         }
 
 
@@ -76,6 +119,16 @@ namespace RealEstateMarketAnalysis.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+
+        private bool IsValidEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return false;
+
+            string pattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+            return Regex.IsMatch(email, pattern);
+        }
+
     }
+
 }
 
