@@ -1,4 +1,4 @@
-﻿namespace RealEstateMarketAnalysis.Data
+﻿namespace RealEstateMarketAnalysis.Models
 {
     public class UserModel
     {

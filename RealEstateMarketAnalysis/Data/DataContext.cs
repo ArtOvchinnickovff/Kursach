@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using RealEstateMarketAnalysis.Models;
 
 namespace RealEstateMarketAnalysis.Data
 {
