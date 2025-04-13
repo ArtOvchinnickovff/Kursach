@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using RealEstateMarketAnalysis.Models;
 using RealEstateMarketAnalysis.Parser;
 
 namespace RealEstateMarketAnalysis.Controllers
@@ -17,10 +18,17 @@ namespace RealEstateMarketAnalysis.Controllers
 
         // Метод для парсинга данных с сайта Cian и возврата их
         [HttpGet("parse")]
-        public async Task<IActionResult> Parse()
+        public async Task<IActionResult> Parse([FromQuery] CianFilterOptions filter)
         {
-            var listings = await _cianParserService.ParseAsync();
-            return Ok(listings);
+            try
+            {
+                var listings = await _cianParserService.ParseAsync(filter);
+                return Ok(listings);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка парсинга: {ex.Message}");
+            }
         }
     }
 }

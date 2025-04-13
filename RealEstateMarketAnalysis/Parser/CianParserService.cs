@@ -22,10 +22,15 @@ namespace RealEstateMarketAnalysis.Parser
         }
 
         // Парсинг HTML с помощью Playwright
-        public async Task<List<CianListing>> ParseAsync()
+        public async Task<List<CianListing>> ParseAsync(CianFilterOptions? filter = null)
         {
-            var url = "https://www.cian.ru/cat.php?deal_type=sale&engine_version=2&offer_type=flat&region=1";
+            // Если фильтр не передан — используем дефолтные значения
+            filter ??= new CianFilterOptions();
 
+            // Формируем URL с параметрами
+            var url = BuildCianUrl(filter);
+
+            // Парсим через Playwright
             using var playwright = await Playwright.CreateAsync();
             await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
             var page = await browser.NewPageAsync();
@@ -35,6 +40,32 @@ namespace RealEstateMarketAnalysis.Parser
 
             var html = await page.ContentAsync();
             return _htmlParser.ParseHtml(html);
+        }
+
+        private string BuildCianUrl(CianFilterOptions filter)
+        {
+            var baseUrl = "https://www.cian.ru/cat.php?";
+            var queryParams = new List<string>
+    {
+        $"deal_type={filter.DealType}",
+        $"offer_type={filter.PropertyType}",
+        "engine_version=2",
+        "region=1" // 1 — Москва, 2 — СПб и т.д.
+    };
+
+            if (filter.MinPrice.HasValue)
+                queryParams.Add($"minprice={filter.MinPrice}");
+
+            if (filter.MaxPrice.HasValue)
+                queryParams.Add($"maxprice={filter.MaxPrice}");
+
+            if (filter.RoomsCount.HasValue)
+                queryParams.Add($"room{filter.RoomsCount}=1");
+
+            if (!string.IsNullOrEmpty(filter.District))
+                queryParams.Add($"district_name={Uri.EscapeDataString(filter.District)}");
+
+            return baseUrl + string.Join("&", queryParams);
         }
 
         // Импорт в БД
