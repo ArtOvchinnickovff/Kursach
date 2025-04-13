@@ -11,5 +11,6 @@ namespace RealEstateMarketAnalysis.Data
         }
 
         public DbSet<UserModel> Users => Set<UserModel>();
+        public DbSet<CianListing> CianListings { get; set; }
     }
 }
