@@ -19,7 +19,9 @@ namespace RealEstateMarketAnalysis.Migrations
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     Email = table.Column<string>(type: "TEXT", nullable: false),
                     Password = table.Column<string>(type: "TEXT", nullable: false),
-                    Role = table.Column<string>(type: "TEXT", nullable: false)
+                    Role = table.Column<string>(type: "TEXT", nullable: false),
+                    // Добавляем колонку для Favorites
+                    Favorites = table.Column<string>(type: "TEXT", nullable: true) // пример типа данных
                 },
                 constraints: table =>
                 {
@@ -27,7 +29,6 @@ namespace RealEstateMarketAnalysis.Migrations
                 });
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

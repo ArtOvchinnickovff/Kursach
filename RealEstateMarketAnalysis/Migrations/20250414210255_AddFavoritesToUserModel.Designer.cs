@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RealEstateMarketAnalysis.Data;
 
@@ -10,9 +11,11 @@ using RealEstateMarketAnalysis.Data;
 namespace RealEstateMarketAnalysis.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20250414210255_AddFavoritesToUserModel")]
+    partial class AddFavoritesToUserModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
@@ -47,38 +50,6 @@ namespace RealEstateMarketAnalysis.Migrations
                     b.ToTable("CianListings");
                 });
 
-            modelBuilder.Entity("RealEstateMarketAnalysis.Models.FavoriteListing", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Price")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("FavoriteListings");
-                });
-
             modelBuilder.Entity("RealEstateMarketAnalysis.Models.UserModel", b =>
                 {
                     b.Property<int>("Id")
@@ -104,22 +75,6 @@ namespace RealEstateMarketAnalysis.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("RealEstateMarketAnalysis.Models.FavoriteListing", b =>
-                {
-                    b.HasOne("RealEstateMarketAnalysis.Models.UserModel", "User")
-                        .WithMany("Favorites")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("RealEstateMarketAnalysis.Models.UserModel", b =>
-                {
-                    b.Navigation("Favorites");
                 });
 #pragma warning restore 612, 618
         }
