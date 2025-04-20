@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using System.Net;
 using RealEstateMarketAnalysis.Models;
 
 namespace RealEstateMarketAnalysis.Parser
@@ -19,13 +20,15 @@ namespace RealEstateMarketAnalysis.Parser
             {
                 var titleNode = card.SelectSingleNode(".//span[contains(@data-mark, 'Title')]");
                 var priceNode = card.SelectSingleNode(".//span[contains(@data-mark, 'MainPrice')]");
-                var addressNode = card.SelectSingleNode(".//div[contains(@data-name, 'GeoLabel')]");
+                var addressNode = card.SelectSingleNode(".//div[contains(@class, 'geo')]")
+                                ?? card.SelectSingleNode(".//a[contains(@class, 'address')]")
+                                ?? card.SelectSingleNode(".//div[contains(@data-name, 'Geo')]");
                 var linkNode = card.SelectSingleNode(".//a[contains(@href, '/sale/')]");
 
                 listings.Add(new CianListing
                 {
                     Title = titleNode?.InnerText.Trim() ?? "—",
-                    Price = priceNode?.InnerText.Trim() ?? "—",
+                    Price = WebUtility.HtmlDecode(priceNode?.InnerText.Trim()) ?? "—",
                     Address = addressNode?.InnerText.Trim() ?? "—",
                     Url = linkNode?.GetAttributeValue("href", "") ?? ""
                 });

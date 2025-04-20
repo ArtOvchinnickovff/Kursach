@@ -6,13 +6,22 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
 using RealEstateMarketAnalysis.Parser;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Добавляем сервисы
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+builder.Services.AddScoped<CianHtmlParser>();
+builder.Services.AddScoped<CianParserService>();
 
 // Настройка JWT аутентификации
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

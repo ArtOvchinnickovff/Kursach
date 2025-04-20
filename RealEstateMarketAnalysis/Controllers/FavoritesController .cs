@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RealEstateMarketAnalysis.Data;
 using RealEstateMarketAnalysis.Models;
-using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace RealEstateMarketAnalysis.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class FavoritesController : ControllerBase
     {
         private readonly DataContext _context;
@@ -17,52 +19,68 @@ namespace RealEstateMarketAnalysis.Controllers
             _context = context;
         }
 
-        private async Task<UserModel?> GetUser(string email, string password)
+        private async Task<UserModel?> GetCurrentUser()
         {
+            var userEmail = User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(userEmail))
+                return null;
+
             return await _context.Users
                 .Include(u => u.Favorites)
-                .FirstOrDefaultAsync(u => u.Email == email && u.Password == password);
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
         }
 
         [HttpPost("add")]
-        public async Task<IActionResult> AddToFavorites(
-            [FromQuery] string email,
-            [FromQuery] string password,
-            [FromBody] FavoriteListingDTO listingDto)
-              {
-            // Проверка авторизации
-            var user = await GetUser(email, password);
+        public async Task<IActionResult> AddToFavorites([FromBody] FavoriteListingDTO listingDto)
+        {
+            var user = await GetCurrentUser();
             if (user is null)
-                return Unauthorized("Неверная почта или пароль");
+                return Unauthorized("Пользователь не найден");
 
-            // Проверка на дубликаты
-            if (user.Favorites.Any(f => f.Url == listingDto.Url))
-                return BadRequest("Объект уже в избранном");
+            if (user.Favorites.Any(f =>
+                f.Url == listingDto.Url &&
+                f.Title == listingDto.Title &&
+                f.Address == listingDto.Address))
+            {
+                return BadRequest("Этот объект уже в избранном");
+            }
 
-            // Создание новой записи
             var listing = new FavoriteListing
             {
                 Url = listingDto.Url,
-                Title = "Название не указано", 
-                Price = "Цена не указана",    
-                Address = "Адрес не указан",  
-                UserId = user.Id              
+                Title = listingDto.Title,
+                Price = listingDto.Price,
+                Address = listingDto.Address,
+                UserId = user.Id
             };
 
             _context.FavoriteListings.Add(listing);
             await _context.SaveChangesAsync();
 
-            return Ok("Добавлено в избранное");
-         }
+            // Возвращаем DTO вместо полной модели
+            return Ok(new
+            {
+                Message = "Добавлено в избранное",
+            });
+        }
 
-        [HttpDelete("remove/{listingId}")]
-        public async Task<IActionResult> RemoveFromFavorites([FromRoute] int listingId)
+        [HttpDelete("remove")]
+        public async Task<IActionResult> RemoveFromFavorites([FromBody] FavoriteListingDTO listingDto)
         {
+            var user = await GetCurrentUser();
+            if (user is null)
+                return Unauthorized("Пользователь не найден");
+
+            // Ищем по всем трём параметрам
             var listing = await _context.FavoriteListings
-                .FirstOrDefaultAsync(f => f.Id == listingId);
+                .FirstOrDefaultAsync(f =>
+                    f.UserId == user.Id &&
+                    f.Url == listingDto.Url &&
+                    f.Title == listingDto.Title &&
+                    f.Address == listingDto.Address);
 
             if (listing is null)
-                return NotFound($"Объявление с ID {listingId} не найдено в избранном");
+                return NotFound("Объект не найден в вашем избранном");
 
             _context.FavoriteListings.Remove(listing);
             await _context.SaveChangesAsync();
@@ -70,15 +88,16 @@ namespace RealEstateMarketAnalysis.Controllers
             return Ok(new
             {
                 Message = "Удалено из избранного",
-                DeletedId = listingId
+                RemovedListing = listingDto
             });
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> GetFavorites([FromQuery] string email, [FromQuery] string password)
+        public async Task<IActionResult> GetFavorites()
         {
-            var user = await GetUser(email, password);
-            if (user is null) return Unauthorized("Неверная почта или пароль");
+            var user = await GetCurrentUser();
+            if (user is null)
+                return Unauthorized("Пользователь не найден");
 
             return Ok(user.Favorites);
         }
