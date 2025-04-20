@@ -7,7 +7,6 @@
         public string Url { get; set; } = null!;
         public string Title { get; set; } 
         public string Price { get; set; } 
-        public string Address { get; set; } 
 
         // внешний ключ
         public int UserId { get; set; }

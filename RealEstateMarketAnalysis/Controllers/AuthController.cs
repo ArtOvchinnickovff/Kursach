@@ -29,6 +29,9 @@ namespace RealEstateMarketAnalysis.Controllers
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(userDto.Email) || !IsValidEmail(userDto.Email))
+                    return BadRequest("Please enter data");
+
                 if (!IsValidEmail(userDto.Email))
                     return BadRequest("Invalid email or password");
 
@@ -72,6 +75,11 @@ namespace RealEstateMarketAnalysis.Controllers
             // Получаем пользователя из базы данных по email
             var user = await dbContext.Users
                                        .FirstOrDefaultAsync(u => u.Email == userDto.Email);
+
+
+
+            if (string.IsNullOrWhiteSpace(userDto.Email) || !IsValidEmail(userDto.Email))
+                return BadRequest("Please enter data");
 
             if (user == null)
             {

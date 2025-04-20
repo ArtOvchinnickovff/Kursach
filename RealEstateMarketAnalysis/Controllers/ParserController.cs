@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateMarketAnalysis.Models;
 using RealEstateMarketAnalysis.Parser;
@@ -16,10 +17,12 @@ namespace RealEstateMarketAnalysis.Controllers
             _cianParserService = cianParserService;
         }
 
-        // Метод для парсинга данных с сайта Cian и возврата их
+        [Authorize]
         [HttpGet("parse")]
         public async Task<IActionResult> Parse([FromQuery] CianFilterOptions filter)
         {
+            if (string.IsNullOrWhiteSpace(filter?.Location) || filter.MinPrice == null || filter.MaxPrice == null)
+                return BadRequest("Please enter data");
             try
             {
                 var listings = await _cianParserService.ParseAsync(filter);

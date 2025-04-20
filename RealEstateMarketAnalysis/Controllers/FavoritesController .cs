@@ -30,17 +30,21 @@ namespace RealEstateMarketAnalysis.Controllers
                 .FirstOrDefaultAsync(u => u.Email == userEmail);
         }
 
+
+        [Authorize]
         [HttpPost("add")]
         public async Task<IActionResult> AddToFavorites([FromBody] FavoriteListingDTO listingDto)
         {
+            if (string.IsNullOrWhiteSpace(listingDto.Url) || string.IsNullOrWhiteSpace(listingDto.Title))
+                return BadRequest("Please enter data"); 
+
             var user = await GetCurrentUser();
             if (user is null)
                 return Unauthorized("Пользователь не найден");
 
             if (user.Favorites.Any(f =>
                 f.Url == listingDto.Url &&
-                f.Title == listingDto.Title &&
-                f.Address == listingDto.Address))
+                f.Title == listingDto.Title))
             {
                 return BadRequest("Этот объект уже в избранном");
             }
@@ -50,7 +54,6 @@ namespace RealEstateMarketAnalysis.Controllers
                 Url = listingDto.Url,
                 Title = listingDto.Title,
                 Price = listingDto.Price,
-                Address = listingDto.Address,
                 UserId = user.Id
             };
 
@@ -64,9 +67,16 @@ namespace RealEstateMarketAnalysis.Controllers
             });
         }
 
+
+        [Authorize]
         [HttpDelete("remove")]
+
         public async Task<IActionResult> RemoveFromFavorites([FromBody] FavoriteListingDTO listingDto)
         {
+
+            if (string.IsNullOrWhiteSpace(listingDto.Url) || string.IsNullOrWhiteSpace(listingDto.Title))
+                return BadRequest("Please enter data");
+
             var user = await GetCurrentUser();
             if (user is null)
                 return Unauthorized("Пользователь не найден");
@@ -76,8 +86,7 @@ namespace RealEstateMarketAnalysis.Controllers
                 .FirstOrDefaultAsync(f =>
                     f.UserId == user.Id &&
                     f.Url == listingDto.Url &&
-                    f.Title == listingDto.Title &&
-                    f.Address == listingDto.Address);
+                    f.Title == listingDto.Title);
 
             if (listing is null)
                 return NotFound("Объект не найден в вашем избранном");
@@ -88,10 +97,10 @@ namespace RealEstateMarketAnalysis.Controllers
             return Ok(new
             {
                 Message = "Удалено из избранного",
-                RemovedListing = listingDto
             });
         }
 
+        [Authorize]
         [HttpGet("list")]
         public async Task<IActionResult> GetFavorites()
         {
