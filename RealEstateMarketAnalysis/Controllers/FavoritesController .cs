@@ -102,13 +102,18 @@ namespace RealEstateMarketAnalysis.Controllers
 
         [Authorize]
         [HttpGet("list")]
-        public async Task<IActionResult> GetFavorites()
+        public async Task<IActionResult> CheckFavorite(string url)
         {
             var user = await GetCurrentUser();
             if (user is null)
                 return Unauthorized("Пользователь не найден");
 
-            return Ok(user.Favorites);
+            var favorite = user.Favorites.FirstOrDefault(f => f.Url == url);
+
+            if (favorite != null)
+                return Ok(new { message = "Announcement is in favorites", isFavorite = true });
+
+            return Ok(new { message = "Announcement not found in favorites", isFavorite = false });
         }
     }
 }
