@@ -9,50 +9,66 @@ using RealEstateMarketAnalysis.Parser;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Добавляем сервисы
 builder.Services.AddControllers();
-
-// Register the CianParserService
-builder.Services.AddScoped<CianParserService>();
-
-builder.Services.AddHttpClient("cian", client =>
-     {
-    client.DefaultRequestHeaders.Add("User-Agent",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/113 Safari/537.36");
-     });
-builder.Services.AddScoped<CianHtmlParser>();
-
-// Configure the DbContext for SQLite
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+// Настройка JWT аутентификации
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        Description = "JWT Authorization header using the Bearer scheme. \n\r\n Enter 'Bearer' [space] and then your token in the text input below.\n\r\n Example: \"Bearer 12345abcdef\"",
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+// Настройка Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
     });
-    options.OperationFilter<SecurityRequirementsOperationFilter>();
-});
 
-// Add JWT Bearer Authentication
-builder.Services.AddAuthentication().AddJwtBearer();
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Конфигурация middleware
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+
+// Важно: UseAuthentication ДО UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

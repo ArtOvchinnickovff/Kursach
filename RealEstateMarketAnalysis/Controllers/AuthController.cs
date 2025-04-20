@@ -55,7 +55,7 @@ namespace RealEstateMarketAnalysis.Controllers
                 dbContext.Users.Add(user);
                 await dbContext.SaveChangesAsync();
 
-                return Ok(user);
+                return Ok("Registration successful");
             }
             catch (Exception ex)
             {
@@ -85,7 +85,7 @@ namespace RealEstateMarketAnalysis.Controllers
             }
 
             // Генерация JWT токена
-            string token = GenerateToken(user);
+            var token = GenerateToken(user);
 
             return Ok(new { Token = token });
         }
@@ -93,31 +93,26 @@ namespace RealEstateMarketAnalysis.Controllers
 
         private string GenerateToken(UserModel user)
         {
-            List<Claim> claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.Name, user.Name),
-    };
+            var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Email, user.Email)
+        };
 
-            string? tokenKey = _configuration.GetSection("AppSettings:Token").Value;
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
 
-            if (string.IsNullOrEmpty(tokenKey) || tokenKey.Length < 16)
-            {
-                throw new ArgumentException("JWT ключ отсутствует или слишком короткий. Минимум 16 символов.");
-            }
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: null,
-                audience: null,
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(30),
+                expires: DateTime.UtcNow.AddHours(1),
                 signingCredentials: creds
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
 
 
         private bool IsValidEmail(string email)
